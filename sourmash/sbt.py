@@ -396,7 +396,7 @@ class SBT(object):
             'args': self.factory.init_args()
         }
 
-        if not self.is_ready:
+        if not self.is_ready and structure_only is False:
             self._fill_internal()
 
         nodes = {}
@@ -431,7 +431,6 @@ class SBT(object):
 
                 data['filename'] = node.save(data['filename'])
 
-            data['filename'] = node.save(data['filename'])
             if isinstance(node, Node):
                 nodes[i] = data
             else:
@@ -686,8 +685,6 @@ class SBT(object):
         if print_version_warning:
             error("WARNING: this is an old index version, please run `sourmash migrate` to update it.")
             error("WARNING: proceeding with execution, but it will take longer to finish!")
-
-        tree._fill_min_n_below()
 
         return tree
 
