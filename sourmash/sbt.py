@@ -513,12 +513,15 @@ class SBT(object):
             raise ValueError("Empty tree!")
 
         sbt_nodes = {}
+        sbt_leaves = {}
+
+        max_node = 0
 
         sample_bf = os.path.join(dirname, jnodes[0]['filename'])
         ksize, tablesize, ntables = khmer.extract_nodegraph_info(sample_bf)[:3]
         factory = GraphFactory(ksize, tablesize, ntables)
 
-        for i, jnode in enumerate(jnodes):
+        for k, jnode in enumerate(jnodes):
             if jnode is None:
                 continue
 
@@ -527,13 +530,24 @@ class SBT(object):
             if 'internal' in jnode['name']:
                 jnode['factory'] = factory
                 sbt_node = Node.load(jnode, storage)
+                sbt_nodes[k] = sbt_node
             else:
                 sbt_node = leaf_loader(jnode, storage)
+                sbt_leaves[k] = sbt_node
 
-            sbt_nodes[i] = sbt_node
+            max_node = max(max_node, k)
 
         tree = SBT(factory)
         tree._nodes = sbt_nodes
+        tree._leaves = sbt_leaves
+        tree._missing_nodes = {i for i in range(max_node)
+                               if i not in sbt_nodes and i not in sbt_leaves}
+
+        if print_version_warning:
+            error("WARNING: this is an old index version, please run `sourmash migrate` to update it.")
+            error("WARNING: proceeding with execution, but it will take longer to finish!")
+
+        tree._fill_min_n_below()
 
         return tree
 
@@ -546,6 +560,8 @@ class SBT(object):
 
         sbt_nodes = {}
         sbt_leaves = {}
+
+        max_node = 0
 
         sample_bf = os.path.join(dirname, nodes[0]['filename'])
         k, size, ntables = khmer.extract_nodegraph_info(sample_bf)[:3]
@@ -565,9 +581,19 @@ class SBT(object):
                 sbt_node = leaf_loader(node, storage)
                 sbt_leaves[k] = sbt_node
 
+            max_node = max(max_node, k)
+
         tree = cls(factory, d=info['d'])
         tree._nodes = sbt_nodes
         tree._leaves = sbt_leaves
+        tree._missing_nodes = {i for i in range(max_node)
+                               if i not in sbt_nodes and i not in sbt_leaves}
+
+        if print_version_warning:
+            error("WARNING: this is an old index version, please run `sourmash migrate` to update it.")
+            error("WARNING: proceeding with execution, but it will take longer to finish!")
+
+        tree._fill_min_n_below()
 
         return tree
 
@@ -608,7 +634,7 @@ class SBT(object):
         tree._nodes = sbt_nodes
         tree._leaves = sbt_leaves
         tree._missing_nodes = {i for i in range(max_node)
-                              if i not in sbt_nodes and i not in sbt_leaves}
+                               if i not in sbt_nodes and i not in sbt_leaves}
 
         if print_version_warning:
             error("WARNING: this is an old index version, please run `sourmash migrate` to update it.")
@@ -625,7 +651,8 @@ class SBT(object):
         if not nodes:
             raise ValueError("Empty tree!")
 
-        sbt_nodes = defaultdict(lambda: None)
+        sbt_nodes = {}
+        sbt_leaves = {}
 
         klass = STORAGES[info['storage']['backend']]
         if info['storage']['backend'] == "FSStorage":
@@ -643,18 +670,18 @@ class SBT(object):
             if 'internal' in node['name']:
                 node['factory'] = factory
                 sbt_node = Node.load(node, storage)
+                sbt_nodes[k] = sbt_node
             else:
                 sbt_node = leaf_loader(node, storage)
+                sbt_leaves[k] = sbt_node
 
-            sbt_nodes[k] = sbt_node
             max_node = max(max_node, k)
 
         tree = cls(factory, d=info['d'], storage=storage)
-        tree.nodes = sbt_nodes
-        tree.missing_nodes = {i for i in range(max_node)
-                                if i not in sbt_nodes}
-        # TODO: this might not be true with combine...
-        tree.next_node = max_node
+        tree._nodes = sbt_nodes
+        tree._leaves = sbt_leaves
+        tree._missing_nodes = {i for i in range(max_node)
+                               if i not in sbt_nodes and i not in sbt_leaves}
 
         if print_version_warning:
             error("WARNING: this is an old index version, please run `sourmash migrate` to update it.")
@@ -703,7 +730,7 @@ class SBT(object):
         tree._nodes = sbt_nodes
         tree._leaves = sbt_leaves
         tree._missing_nodes = {i for i in range(max_node)
-                              if i not in sbt_nodes and i not in sbt_leaves}
+                               if i not in sbt_nodes and i not in sbt_leaves}
 
         return tree
 
