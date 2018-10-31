@@ -41,7 +41,7 @@ install:
 - pip install tox
 - sudo snap install ipfs
 script:
-- "/snap/bin/ipfs daemon --init --offline &>/dev/null &"
+- "/snap/bin/ipfs daemon --init &>/dev/null &"
 - tox -e $TOX_ENV
 before_deploy:
 - git clean -xfd
